@@ -1,0 +1,13 @@
+--------- beginning of main
+04-26 23:17:02.699 11669 11669 I AgentApp: runSkillById: "stub_video_play" inputs={title=三体}
+04-26 23:17:03.430 11669 11669 I AgentA11y: window changed → com.taomic.agentos.stubvideo
+04-26 23:17:03.661 11669 11759 I AgentA11y: inputText NodeQuery(text=null, containsText=null, resourceId=com.taomic.agentos.stubvideo:id/search_field, desc=null, className=null, index=0) text="三体" → true
+04-26 23:17:03.774 11669 11759 I AgentA11y: clickNode NodeQuery(text=null, containsText=null, resourceId=com.taomic.agentos.stubvideo:id/search_button, desc=null, className=null, index=0) → performed=true
+04-26 23:17:03.794 11669 11759 I AgentA11y: clickNode NodeQuery(text=三体, containsText=null, resourceId=null, desc=null, className=android.widget.TextView, index=0) → performed=true
+04-26 23:17:03.794 11669 11759 I AgentApp: RUN_SKILL[SUCCESS] "stub_video_play" steps=6/6 dur=1088ms err=null
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[0] LaunchApp → Success(detail=launched com.taomic.agentos.stubvideo)
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[1] WaitNode → Success(detail=found in 758ms)
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[2] InputText → Success(detail=)
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[3] ClickNode → Success(detail=)
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[4] WaitNode → Success(detail=found in 6ms)
+04-26 23:17:03.794 11669 11759 I AgentApp:   step[5] ClickNode → Success(detail=)
