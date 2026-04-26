@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 rootProject.name = "AgentOS-for-android"
 
 include(":app", ":core", ":a11y", ":skill", ":llm", ":data", ":uikit")
+include(":tools:stub-video")

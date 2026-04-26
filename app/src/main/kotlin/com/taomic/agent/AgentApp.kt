@@ -120,6 +120,7 @@ class AgentApp : Application() {
         // :skill 模块的 src/main/resources/skills/*.yaml 会打包进 APK 的 java-resources
         val builtins = listOf(
             "skills/settings_open_internet.yaml",
+            "skills/stub_video_play.yaml",
             "skills/tencent_video_play.yaml",
         )
         for (path in builtins) {

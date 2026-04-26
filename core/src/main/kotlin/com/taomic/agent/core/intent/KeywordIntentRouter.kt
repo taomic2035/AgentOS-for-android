@@ -8,11 +8,11 @@ package com.taomic.agent.core.intent
  *
  * 命中规则（不区分大小写，子串匹配）：
  *  - 含 "网络" / "internet" / "wifi" / "wi-fi" → `settings_open_internet`
- *  - 含 "三体" / "视频" / "看 X" → `tencent_video_play` with title=（"三体" 或 X）
+ *  - 含 "三体" / "视频" / "看 X" → `stub_video_play` with title=（"三体" 或 X）
  *  - 其他 → [RouteResult.Miss]
  *
- * V0.2 加更多场景时，此类会演进成"按 SkillSpec.metadata.tags + embedding"驱动；
- * V0.1b 阶段保持极简硬编码。
+ * V0.6 上真机时把"看 X" 的目标改为 `tencent_video_play`（或链式路由先尝试腾讯视频
+ * 未装时降级到 stub）。V0.1 阶段统一指向 `stub_video_play` 让 e2e 不依赖三方 App。
  */
 class KeywordIntentRouter : IntentRouter {
     override fun route(text: String): RouteResult {
@@ -28,7 +28,7 @@ class KeywordIntentRouter : IntentRouter {
             WATCH_PATTERN.containsMatchIn(normalized)
         ) {
             val title = extractTitle(normalized)
-            return RouteResult.Hit("tencent_video_play", mapOf("title" to title))
+            return RouteResult.Hit("stub_video_play", mapOf("title" to title))
         }
         return RouteResult.Miss(text)
     }

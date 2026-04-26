@@ -1,0 +1,27 @@
+id: stub_video_play
+name: 在 Stub Video 上播放指定剧（V0.1 e2e 兜底）
+version: 1
+description: 给 AgentOS e2e 测试用的"看 X"链路；不依赖任何真三方 App
+inputs:
+  - { name: title, type: string, required: true }
+steps:
+  - action: launch_app
+    package: com.taomic.agentos.stubvideo
+  - action: wait_node
+    resource_id: com.taomic.agentos.stubvideo:id/search_field
+    timeout_ms: 5000
+  - action: input_text
+    target:
+      resource_id: com.taomic.agentos.stubvideo:id/search_field
+    text: ${title}
+  - action: click_node
+    resource_id: com.taomic.agentos.stubvideo:id/search_button
+  - action: wait_node
+    contains_text: ${title}
+    timeout_ms: 3000
+  - action: click_node
+    text: ${title}
+    class_name: android.widget.TextView
+recovery:
+  on_node_not_found: prompt_user
+  on_timeout: abort

@@ -19,11 +19,11 @@ class KeywordIntentRouterTest {
     }
 
     @Test
-    fun `santi keyword maps to tencent_video_play with title=三体`() {
+    fun `santi keyword maps to stub_video_play with title=三体`() {
         listOf("三体", "看三体", "我想看三体最新一集", "三体最终战")
             .forEach { input ->
                 val r = router.route(input) as RouteResult.Hit
-                assertEquals("tencent_video_play", r.skillId)
+                assertEquals("stub_video_play", r.skillId)
                 assertEquals("三体" /* for input "$input" */, r.inputs["title"])
             }
     }
@@ -31,16 +31,16 @@ class KeywordIntentRouterTest {
     @Test
     fun `watch pattern extracts title for non-santi videos`() {
         val r = router.route("看红楼梦") as RouteResult.Hit
-        assertEquals("tencent_video_play", r.skillId)
+        assertEquals("stub_video_play", r.skillId)
         assertEquals("红楼梦", r.inputs["title"])
     }
 
     @Test
-    fun `chinese video synonyms route to tencent`() {
+    fun `chinese video synonyms route to stub_video_play`() {
         listOf("放视频", "电视剧推荐", "看剧").forEach { input ->
             val r = router.route(input)
             assertTrue("input=\"$input\" → $r", r is RouteResult.Hit)
-            assertEquals("tencent_video_play", (r as RouteResult.Hit).skillId)
+            assertEquals("stub_video_play", (r as RouteResult.Hit).skillId)
         }
     }
 

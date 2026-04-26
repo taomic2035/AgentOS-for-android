@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stub Video</string>
+    <string name="search_hint">搜索剧名</string>
+    <string name="search_button">搜索</string>
+    <string name="empty_results">没有结果</string>
+    <string name="player_title">播放页</string>
+</resources>

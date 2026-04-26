@@ -115,7 +115,7 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
         val desc = query.desc
         val className = query.className
 
-        val candidates: List<AccessibilityNodeInfo> = when {
+        val rough: List<AccessibilityNodeInfo> = when {
             !resId.isNullOrBlank() ->
                 root.findAccessibilityNodeInfosByViewId(resId).orEmpty()
 
@@ -135,7 +135,18 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
             else -> emptyList()
         }
 
-        return candidates.getOrNull(query.index.coerceAtLeast(0))
+        // 走 text/resId/containsText 主分支后，若 query 同时声明 className，再用 className
+        // 收紧，避免 EditText/TextView 之类的同名 text 被误命中。
+        val refined = if (
+            !className.isNullOrBlank() && rough.isNotEmpty() &&
+            (!resId.isNullOrBlank() || !exactText.isNullOrBlank() || !containsText.isNullOrBlank())
+        ) {
+            rough.filter { it.className?.toString() == className }
+        } else {
+            rough
+        }
+
+        return refined.getOrNull(query.index.coerceAtLeast(0))
     }
 
     /** 查找 → 找最近 clickable 祖先 → performAction(ACTION_CLICK)。 */
