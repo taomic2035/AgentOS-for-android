@@ -11,6 +11,7 @@ coroutines = "1.7.3"
 serialization = "1.6.2"
 okhttp = "4.12.0"
 snakeyaml = "2.2"
+kaml = "0.57.0"
 timber = "5.0.1"
 junit = "4.13.2"
 mockk = "1.13.8"
@@ -39,6 +40,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
 snakeyaml = { group = "org.yaml", name = "snakeyaml", version.ref = "snakeyaml" }
+kaml = { group = "com.charleskorn.kaml", name = "kaml", version.ref = "kaml" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -1,0 +1,19 @@
+id: settings_open_internet
+name: 打开 Settings 的 Network & internet 页
+version: 1
+description: V0.1 SkillRunner 烟雾测试 — 不依赖三方 App，仅用系统 Settings 验证全链路
+inputs: []
+steps:
+  - action: launch_app
+    package: com.android.settings
+  - action: wait_node
+    text: Network & internet
+    timeout_ms: 5000
+  - action: click_node
+    text: Network & internet
+  - action: wait_node
+    contains_text: Internet
+    timeout_ms: 3000
+recovery:
+  on_node_not_found: prompt_user
+  on_timeout: abort

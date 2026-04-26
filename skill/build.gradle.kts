@@ -16,7 +16,7 @@ dependencies {
     implementation(project(":core"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.snakeyaml)
+    implementation(libs.kaml)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
