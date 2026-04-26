@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.taomic.agent.core.intent.KeywordIntentRouterTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-04-26T14:24:40" hostname="taomicdeMacBook-Air.local" time="0.015">
+  <properties/>
+  <testcase name="chinese video synonyms route to tencent" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.013"/>
+  <testcase name="empty or blank text returns Miss" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.001"/>
+  <testcase name="unmatched text returns Miss" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.0"/>
+  <testcase name="watch pattern extracts title for non-santi videos" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.0"/>
+  <testcase name="keyword priority — network beats video when both present" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.001"/>
+  <testcase name="network keywords map to settings_open_internet" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.0"/>
+  <testcase name="santi keyword maps to tencent_video_play with title=三体" classname="com.taomic.agent.core.intent.KeywordIntentRouterTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -8,6 +8,9 @@ import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
 import com.taomic.agent.a11y.A11yActionContext
+import com.taomic.agent.core.intent.IntentRouter
+import com.taomic.agent.core.intent.KeywordIntentRouter
+import com.taomic.agent.core.intent.RouteResult
 import com.taomic.agent.skill.DefaultSkillRunner
 import com.taomic.agent.skill.SkillResult
 import com.taomic.agent.skill.SkillRunner
@@ -35,6 +38,7 @@ class AgentApp : Application() {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var actionContext: A11yActionContext
     private lateinit var skillRunner: SkillRunner
+    private val intentRouter: IntentRouter = KeywordIntentRouter()
     private val skillRegistry = mutableMapOf<String, SkillSpec>()
     private var bubble: FloatingBubble? = null
 
@@ -79,9 +83,9 @@ class AgentApp : Application() {
         if (bubble == null) {
             bubble = FloatingBubble(
                 appContext = applicationContext,
-                onClick = {
-                    Log.i(TAG, "bubble click → run settings_open_internet (V0.1a hardcoded)")
-                    runSkillById("settings_open_internet")
+                onIntent = { text ->
+                    Log.i(TAG, "bubble intent → \"$text\"")
+                    handleIntent(text)
                 },
             )
         }
@@ -93,6 +97,22 @@ class AgentApp : Application() {
     }
 
     fun isBubbleShown(): Boolean = bubble?.isShown() == true
+
+    /**
+     * V0.1b 入口：浮窗 chip 或 adb 都可调；通过 [intentRouter] 决定 skillId+inputs。
+     * V0.2 接 LLM 时把 [intentRouter] 替换为 ChainedIntentRouter(Keyword, Llm)。
+     */
+    fun handleIntent(text: String) {
+        when (val r = intentRouter.route(text)) {
+            is RouteResult.Hit -> {
+                Log.i(TAG, "router hit: \"$text\" → skill=${r.skillId} inputs=${r.inputs}")
+                runSkillById(r.skillId, r.inputs)
+            }
+            is RouteResult.Miss -> {
+                Log.w(TAG, "router miss: \"$text\" (V0.1b 仅支持网络 / 三体相关意图；V0.2 接 LLM 后兜底)")
+            }
+        }
+    }
 
     // ---------------------------------------------------------------- 私有装配
 

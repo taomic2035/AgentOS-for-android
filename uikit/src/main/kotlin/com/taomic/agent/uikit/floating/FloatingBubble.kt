@@ -17,7 +17,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
  *  - 接收 [BubbleContent] 通过 Compose pointerInput 报告的手势：
  *      onDragDelta(dx, dy)：实时累加到 LayoutParams.x/y 并 updateViewLayout
  *      onDragEnd()：吸附到屏幕左/右边缘
- *      onClick()：转发给业务层
+ *      onIntent(text)：用户在 expanded 卡片上点 chip 触发的意图文本，转发给业务层
  *
  * 单例语义：一次只能有一个浮窗实例。重复 [show] 是 no-op。
  *
@@ -29,7 +29,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
  */
 class FloatingBubble(
     private val appContext: Context,
-    private val onClick: () -> Unit,
+    private val onIntent: (text: String) -> Unit,
 ) {
 
     private val wm: WindowManager =
@@ -52,9 +52,9 @@ class FloatingBubble(
                 BubbleContent(
                     onDragDelta = { dx, dy -> applyDrag(dx, dy) },
                     onDragEnd = { snapToEdge() },
-                    onClick = {
-                        Log.d(TAG, "click")
-                        onClick()
+                    onIntent = { text ->
+                        Log.d(TAG, "intent text=\"$text\"")
+                        onIntent(text)
                     },
                 )
             }

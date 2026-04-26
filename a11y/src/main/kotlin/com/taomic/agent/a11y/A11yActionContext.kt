@@ -32,7 +32,10 @@ class A11yActionContext(
         } else {
             Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply { setPackage(packageName) }
         }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // CLEAR_TASK 确保每次 skill 执行时目标 App 都从 launcher Activity 开始；
+        // 不带这个 flag 时若 App 已有任务栈（例如停在子页），launchIntent 会恢复到栈顶
+        // Activity，导致后续 wait_node / click_node 找的是错误的页面节点。
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         return runCatching { appContext.startActivity(intent) }
             .fold(
                 onSuccess = { ActionOutcome.Success("launched $packageName") },
