@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Android
+local.properties
+*.iml
+*.apk
+*.aab
+*.dex
+.cxx/
+captures/
+
+# IDE
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+
+# Generated
+generated/
+
+# Local secrets
+secrets.properties
+**/keystore.properties
+*.keystore
+*.jks

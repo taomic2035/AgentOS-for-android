@@ -1,0 +1,30 @@
+id: tencent_video_play
+name: 在腾讯视频播放指定剧
+version: 1
+description: 拉起腾讯视频，搜索指定剧集并尝试自动播放
+inputs:
+  - name: title
+    type: string
+    required: true
+steps:
+  - action: launch_app
+    package: com.tencent.qqlive
+  - action: wait_node
+    text: 搜索
+    timeout_ms: 3000
+  - action: click_node
+    text: 搜索
+  - action: input_text
+    target:
+      class_name: android.widget.EditText
+    text: ${title}
+  - action: press_key
+    key: ENTER
+  - action: wait_node
+    contains_text: ${title}
+    timeout_ms: 5000
+  - action: click_node
+    contains_text: ${title}
+    index: 0
+recovery:
+  on_node_not_found: fallback_to_llm
