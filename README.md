@@ -11,9 +11,11 @@
 
 ## 当前进度
 
-🚧 **V0.1 骨架阶段** — 多模块 Gradle 工程已搭建，文档体系首稿已就位，业务代码尚未实现。
+**V0.1 ✅ 验收通过** (2026-04-26) —— 浮窗 chip "看三体" → stub-video 自动搜索播放，端到端 1.1 秒。
 
-下一步：T-003 起的实际业务实现（App Shell / 浮窗 / AccessibilityService / Skill Runner / 端到端"三体"硬编码场景）。
+详见 [`docs/06-roadmap/release-notes-v0.1.md`](docs/06-roadmap/release-notes-v0.1.md)。
+
+下一步：V0.2 LLM 真实接入。
 
 ## 架构概览
 
@@ -107,18 +109,47 @@ V0.1 骨架 → V0.2 LLM → V0.3 输入 → V0.4 录制 → V0.5 习惯
 
 ## 测试
 
+V0.1 已建立三层测试架构（仪器测试推迟到 V0.6+）。
+
+### 一键 CI（推荐）
+
 ```bash
-# Unit
-./gradlew test
-
-# Instrumentation（需启动模拟器）
-./gradlew connectedDebugAndroidTest
-
-# E2E（V0.1 起）
-./scripts/e2e-tencent-video.sh
+./scripts/ci.sh             # build + unit + e2e 全跑
+./scripts/ci.sh unit        # 只跑单元测试
+./scripts/ci.sh e2e         # 只跑 e2e（需要 emulator-5554 在线）
+SKIP_BUILD=1 ./scripts/ci.sh   # 跳过 gradle 重新打包
 ```
 
-测试策略见 [`docs/05-test/test-strategy.md`](docs/05-test/test-strategy.md)。
+V0.1 实测：23 个单元测试 + 2 个 e2e 全过。
+
+### 单元测试（纯 JVM，秒级）
+
+```bash
+./gradlew :core:test :skill:test :llm:test
+```
+
+覆盖 IntentRouter、Skill DSL parser、SkillRunner 解释器（用 FakeActionContext mock 出 a11y 行为）。
+
+### E2E（emulator-5554 在线）
+
+```bash
+./scripts/e2e-stub-video.sh    # 浮窗 chip "看三体" → stub-video PlayerActivity (~1.1s)
+./scripts/e2e-settings.sh      # 浮窗 chip "打开网络" → Settings/SubSettings (~1.3s)
+```
+
+每次跑会在 `scripts/test-artifacts/e2e-{name}-YYYYMMDD-HHMMSS/` 归档：
+
+- `01-*.png` — 最终焦点截图
+- `logcat.txt` — AgentApp/AgentA11y/FloatingBubble 关键日志
+
+E2E 脚本通过 `am broadcast com.taomic.agent.RUN_SKILL` 触发，与浮窗 chip 走同一条业务路径，但不依赖坐标 tap，CI 稳定。
+
+### 仪器测试（V0.6+）
+
+UiAutomator 仪器测试在 V0.6（场景多了真值得写）才加。当前 V0.1 的 a11y 原语稳定性靠 e2e 端到端覆盖。
+
+测试策略详见 [`docs/05-test/test-strategy.md`](docs/05-test/test-strategy.md)。
+V0.1 release notes 见 [`docs/06-roadmap/release-notes-v0.1.md`](docs/06-roadmap/release-notes-v0.1.md)。
 
 ## 协作约定
 
