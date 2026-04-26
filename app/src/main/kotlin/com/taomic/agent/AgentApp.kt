@@ -13,6 +13,7 @@ import com.taomic.agent.skill.SkillResult
 import com.taomic.agent.skill.SkillRunner
 import com.taomic.agent.skill.dsl.SkillParser
 import com.taomic.agent.skill.dsl.SkillSpec
+import com.taomic.agent.uikit.floating.FloatingBubble
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,13 +21,14 @@ import kotlinx.coroutines.launch
 
 /**
  * V0.1 装配点：进程启动时初始化 SkillRunner + ActionContext + 内置 Skill 注册表，
- * 监听 `RUN_SKILL` 广播以驱动端到端烟雾测试：
+ * 暴露 [runSkillById] 给 UI 直接调用，并监听 `RUN_SKILL` 广播驱动 adb 烟雾测试：
  *
  *   adb shell am broadcast -a com.taomic.agent.RUN_SKILL \
  *     --es skill_id settings_open_internet
  *
- * V0.4 起，AgentForegroundService 接管这些职责（Application 仅做最小初始化）。
- * 当前阶段把广播订阅放 Application 是为了让 V0.1 端到端最早可演示，不阻塞 T-004。
+ * 浮窗 [FloatingBubble] 由本类持有；T-005 期间通过 [showBubble] / [hideBubble] 由
+ * MainActivity 触发。T-004 后 AgentForegroundService 接管整个生命周期，本类回归
+ * 仅装配单例的角色。
  */
 class AgentApp : Application() {
 
@@ -34,6 +36,7 @@ class AgentApp : Application() {
     private lateinit var actionContext: A11yActionContext
     private lateinit var skillRunner: SkillRunner
     private val skillRegistry = mutableMapOf<String, SkillSpec>()
+    private var bubble: FloatingBubble? = null
 
     private val runSkillReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -43,16 +46,7 @@ class AgentApp : Application() {
             val inputs: Map<String, Any?> = buildMap {
                 if (title != null) put("title", title)
             }
-            val spec = skillRegistry[skillId]
-            if (spec == null) {
-                Log.w(TAG, "RUN_SKILL: unknown skill_id=\"$skillId\"; available=${skillRegistry.keys}")
-                return
-            }
-            Log.i(TAG, "RUN_SKILL: \"$skillId\" inputs=$inputs")
-            appScope.launch {
-                val result = skillRunner.run(spec, inputs)
-                logResult(skillId, result)
-            }
+            runSkillById(skillId, inputs)
         }
     }
 
@@ -64,6 +58,43 @@ class AgentApp : Application() {
         registerRunReceiver()
         Log.i(TAG, "AgentApp onCreate; registered ${skillRegistry.size} skill(s): ${skillRegistry.keys}")
     }
+
+    // ---------------------------------------------------------------- 公共 facade
+
+    /** 由 UI（浮窗 / 设置页 / 引导页）直接调用，避免广播开销。 */
+    fun runSkillById(skillId: String, inputs: Map<String, Any?> = emptyMap()) {
+        val spec = skillRegistry[skillId]
+        if (spec == null) {
+            Log.w(TAG, "runSkillById: unknown skill_id=\"$skillId\"; available=${skillRegistry.keys}")
+            return
+        }
+        Log.i(TAG, "runSkillById: \"$skillId\" inputs=$inputs")
+        appScope.launch {
+            val result = skillRunner.run(spec, inputs)
+            logResult(skillId, result)
+        }
+    }
+
+    fun showBubble() {
+        if (bubble == null) {
+            bubble = FloatingBubble(
+                appContext = applicationContext,
+                onClick = {
+                    Log.i(TAG, "bubble click → run settings_open_internet (V0.1a hardcoded)")
+                    runSkillById("settings_open_internet")
+                },
+            )
+        }
+        bubble?.show()
+    }
+
+    fun hideBubble() {
+        bubble?.hide()
+    }
+
+    fun isBubbleShown(): Boolean = bubble?.isShown() == true
+
+    // ---------------------------------------------------------------- 私有装配
 
     private fun loadBuiltinSkills() {
         // :skill 模块的 src/main/resources/skills/*.yaml 会打包进 APK 的 java-resources

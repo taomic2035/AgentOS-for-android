@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.taomic.agent.skill.dsl.SkillParserTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-04-26T13:55:11" hostname="taomicdeMacBook-Air.local" time="0.009">
+  <properties/>
+  <testcase name="parse rejects unknown action" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.001"/>
+  <testcase name="encode then parse round-trip preserves spec" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.005"/>
+  <testcase name="parse press_key all keys round-trip" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.0"/>
+  <testcase name="parse rejects missing required id" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.001"/>
+  <testcase name="parser tolerates unknown top-level fields (forward-compat)" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.001"/>
+  <testcase name="parse settings_open_internet yaml from resources" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.0"/>
+  <testcase name="parse tencent_video_play yaml with template variable" classname="com.taomic.agent.skill.dsl.SkillParserTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
