@@ -23,6 +23,18 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AgentOS">
+
+        <!-- 让 specialUse 通过 Play Store 审核，须声明 PropertyDecl；
+             商用上架时此值可改为更具体的解释链接。V0.1 占位文本。 -->
+        <property
+            android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+            android:value="user-summoned-agent" />
+
+        <service
+            android:name=".service.AgentForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse" />
+
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"

@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.taomic.agent.AgentApp
+import com.taomic.agent.service.AgentForegroundService
 
 /**
  * V0.1 引导壳：
@@ -91,9 +92,15 @@ private fun BootScreen() {
             }) { Text("申请浮窗权限") }
         } else {
             Button(onClick = {
-                if (bubbleShown) app.hideBubble() else app.showBubble()
-                bubbleShown = app.isBubbleShown()
-            }) { Text(if (bubbleShown) "隐藏浮窗" else "显示浮窗") }
+                if (bubbleShown) {
+                    AgentForegroundService.stop(context)
+                } else {
+                    AgentForegroundService.start(context)
+                }
+                // Service 异步初始化；用稍后再读 isBubbleShown() 的方式不准
+                // 切换文案以乐观回显，正确状态由 ON_RESUME observer 重读
+                bubbleShown = !bubbleShown
+            }) { Text(if (bubbleShown) "停止助手 (隐藏浮窗)" else "启动助手 (显示浮窗)") }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -102,7 +109,7 @@ private fun BootScreen() {
             style = MaterialTheme.typography.bodySmall,
         )
         Text(
-            "V0.1a：点击浮窗触发硬编码 settings_open_internet。V0.1b 将加输入卡片 + 关键词路由。",
+            "V0.1c：浮窗 + Skill 由前台服务 AgentForegroundService 持有；进程被回收后 START_STICKY 自动重启并恢复浮窗。",
             style = MaterialTheme.typography.bodySmall,
         )
     }
