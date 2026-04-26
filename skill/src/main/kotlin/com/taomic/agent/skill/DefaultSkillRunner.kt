@@ -110,6 +110,7 @@ class DefaultSkillRunner(
     private class TemplateException(val expr: String, message: String) : RuntimeException(message)
 
     companion object {
-        private val TEMPLATE_REGEX = Regex("""\$\{([a-zA-Z_][a-zA-Z0-9_]*)}""")
+        // Android ICU regex 比 JVM 严格，结尾的 `}` 必须转义为 `\}`
+        private val TEMPLATE_REGEX = Regex("""\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}""")
     }
 }
