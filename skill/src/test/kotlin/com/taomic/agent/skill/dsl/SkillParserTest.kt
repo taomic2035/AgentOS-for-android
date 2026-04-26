@@ -1,5 +1,6 @@
 package com.taomic.agent.skill.dsl
 
+import com.taomic.agent.core.action.GlobalKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

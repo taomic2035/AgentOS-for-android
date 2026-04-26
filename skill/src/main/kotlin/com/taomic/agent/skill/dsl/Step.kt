@@ -1,42 +1,19 @@
 package com.taomic.agent.skill.dsl
 
+import com.taomic.agent.core.action.GlobalKey
+import com.taomic.agent.core.action.NodeQuery
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 /**
- * 节点查询条件。
- *
- * 优先级（强 → 弱）：resourceId > desc > text 精确 > containsText > className+index。
- * 至少必须填一项；同时填多项时 AND 关系。
- */
-@Serializable
-data class NodeQuery(
-    val text: String? = null,
-    @SerialName("contains_text") val containsText: String? = null,
-    @SerialName("resource_id") val resourceId: String? = null,
-    val desc: String? = null,
-    @SerialName("class_name") val className: String? = null,
-    val index: Int = 0,
-)
-
-/** 全局按键（performGlobalAction 支持的子集 + 占位 ENTER）。 */
-@Serializable
-enum class GlobalKey {
-    @SerialName("BACK") BACK,
-    @SerialName("HOME") HOME,
-    @SerialName("RECENTS") RECENTS,
-    @SerialName("NOTIFICATIONS") NOTIFICATIONS,
-
-    /** ENTER 需绕过 globalAction（V0.1 占位，运行层返回 NotImplemented）。 */
-    @SerialName("ENTER") ENTER,
-}
-
-/**
  * 单步动作。`action` 字段作 polymorphic discriminator。
  *
  * V0.1 必须的 6 种：launch_app / wait_node / click_node / input_text / press_key / sleep
+ *
+ * NodeQuery 与 GlobalKey 来自 :core (com.taomic.agent.core.action)，
+ * 这样 :a11y 模块实现 ActionContext 时无需依赖 :skill。
  */
 @OptIn(ExperimentalSerializationApi::class)
 @JsonClassDiscriminator("action")
