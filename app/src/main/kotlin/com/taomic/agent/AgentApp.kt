@@ -16,8 +16,8 @@ import com.taomic.agent.core.intent.LlmIntentRouter
 import com.taomic.agent.core.intent.SkillDescriptor
 import com.taomic.agent.orchestrator.AgentOrchestrator
 import com.taomic.agent.skill.DefaultSkillRunner
-import com.taomic.agent.skill.dsl.SkillSpec
 import com.taomic.agent.ui.LlmConfigStore
+import com.taomic.agent.uikit.floating.AgentState
 import com.taomic.agent.uikit.floating.FloatingBubble
 
 /**
@@ -54,6 +54,16 @@ class AgentApp : Application() {
             skillRunner = DefaultSkillRunner(actionContext),
             intentRouter = KeywordIntentRouter(),
             a11yController = AgentAccessibilityService.instance(),
+            onStateChanged = { state ->
+                val bubbleState = when (state) {
+                    AgentOrchestrator.OrchestratorState.IDLE -> AgentState.IDLE
+                    AgentOrchestrator.OrchestratorState.THINKING -> AgentState.THINKING
+                    AgentOrchestrator.OrchestratorState.EXECUTING -> AgentState.EXECUTING
+                    AgentOrchestrator.OrchestratorState.DONE -> AgentState.DONE
+                    AgentOrchestrator.OrchestratorState.ERROR -> AgentState.ERROR
+                }
+                bubble?.updateState(bubbleState)
+            },
         )
         orchestrator.loadBuiltinSkills(javaClass.classLoader!!)
         rebuildRouter()

@@ -44,5 +44,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AgentOS"
+            android:label="AgentOS 设置" />
     </application>
 </manifest>

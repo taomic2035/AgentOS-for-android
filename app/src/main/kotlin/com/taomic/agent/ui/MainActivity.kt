@@ -109,12 +109,12 @@ private fun BootScreen() {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "AgentOS — V0.2",
+            "AgentOS — V0.3",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "三步设置后即可呼出 AgentOS 助手。LLM 配置后支持自然语言理解；未配置时仅支持关键词指令。",
+            "两步设置后即可呼出 AgentOS 助手。LLM 配置可在设置页中随时修改。",
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF6B6B6B),
         )
@@ -155,18 +155,25 @@ private fun BootScreen() {
         Spacer(Modifier.height(8.dp))
 
         if (allRequiredReady) {
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    if (serviceRunning) {
-                        AgentForegroundService.stop(context)
-                    } else {
-                        AgentForegroundService.start(context)
-                    }
-                    serviceRunning = !serviceRunning
-                },
-            ) {
-                Text(if (serviceRunning) "停止助手 (隐藏浮窗)" else "启动助手 (显示浮窗)")
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (serviceRunning) {
+                            AgentForegroundService.stop(context)
+                        } else {
+                            AgentForegroundService.start(context)
+                        }
+                        serviceRunning = !serviceRunning
+                    },
+                ) {
+                    Text(if (serviceRunning) "停止助手" else "启动助手")
+                }
+                OutlinedButton(onClick = {
+                    context.startActivity(Intent(context, SettingsActivity::class.java))
+                }) {
+                    Text("设置")
+                }
             }
         } else {
             Text(

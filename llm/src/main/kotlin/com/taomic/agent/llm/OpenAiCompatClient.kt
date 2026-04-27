@@ -70,6 +70,74 @@ class OpenAiCompatClient(
         }
     }
 
+    override suspend fun chatStream(messages: List<ChatMessage>, onToken: (String) -> Unit): ChatCompletion =
+        withContext(Dispatchers.IO) {
+            val bodyMap = mutableMapOf<String, kotlinx.serialization.json.JsonElement>(
+                "model" to JsonPrimitive(model),
+                "messages" to buildJsonArray { for (msg in messages) add(buildMessageObject(msg)) },
+                "temperature" to JsonPrimitive(temperature),
+                "max_tokens" to JsonPrimitive(maxTokens),
+                "stream" to JsonPrimitive(true),
+            )
+            val body = JsonObject(bodyMap).toString()
+
+            val request = Request.Builder()
+                .url("$baseUrl/v1/chat/completions")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .post(body.toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string() ?: "unknown"
+                throw LlmException("HTTP ${response.code}: $errorBody")
+            }
+
+            val reader = response.body?.byteStream()?.bufferedReader()
+                ?: throw LlmException("Empty stream response")
+
+            val fullContent = StringBuilder()
+            var finishReason = "stop"
+
+            try {
+                reader.use { r ->
+                    var line: String?
+                    while (r.readLine().also { line = it } != null) {
+                        val l = line!!.trim()
+                        if (!l.startsWith("data: ")) continue
+                        val data = l.removePrefix("data: ").trim()
+                        if (data == "[DONE]") break
+                        if (data.isBlank()) continue
+
+                        try {
+                            val chunk = json.parseToJsonElement(data).jsonObject
+                            val delta = chunk["choices"]?.jsonArray?.firstOrNull()
+                                ?.jsonObject?.get("delta")?.jsonObject ?: continue
+                            val content = delta["content"]?.jsonPrimitive?.content
+                            if (content != null) {
+                                fullContent.append(content)
+                                onToken(content)
+                            }
+                            val fr = chunk["choices"]?.jsonArray?.firstOrNull()
+                                ?.jsonObject?.get("finish_reason")?.jsonPrimitive?.content
+                            if (fr != null && fr != "null") finishReason = fr
+                        } catch (_: Exception) {
+                            // 跳过无法解析的 chunk
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                throw LlmException("Stream read error: ${e.message}", e)
+            }
+
+            ChatCompletion(
+                content = fullContent.toString().ifBlank { null },
+                toolCalls = emptyList(),
+                finishReason = finishReason,
+            )
+        }
+
     private suspend fun doChat(messages: List<ChatMessage>, tools: List<ToolDefinition>?): ChatCompletion =
         withContext(Dispatchers.IO) {
             val body = buildRequestJson(messages, tools)

@@ -30,9 +30,12 @@ class AgentOrchestrator(
     intentRouter: IntentRouter = KeywordIntentRouter(),
     private val a11yController: A11yController? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    private val onStateChanged: (state: OrchestratorState) -> Unit = {},
 ) {
 
     private val skillRegistry = mutableMapOf<String, SkillSpec>()
+
+    enum class OrchestratorState { IDLE, THINKING, EXECUTING, DONE, ERROR }
 
     /** 意图路由器；LLM 配置变更后可替换。 */
     var intentRouter: IntentRouter = intentRouter
@@ -75,6 +78,7 @@ class AgentOrchestrator(
     /** 用户意图入口：路由 → Skill 执行。 */
     fun handleIntent(text: String) {
         scope.launch {
+            onStateChanged(OrchestratorState.THINKING)
             when (val r = intentRouter.route(text)) {
                 is RouteResult.Hit -> {
                     Log.i(TAG, "router hit: \"$text\" → skill=${r.skillId} inputs=${r.inputs}")
@@ -82,6 +86,7 @@ class AgentOrchestrator(
                 }
                 is RouteResult.Miss -> {
                     Log.w(TAG, "router miss: \"$text\"")
+                    onStateChanged(OrchestratorState.IDLE)
                 }
             }
         }
@@ -102,8 +107,10 @@ class AgentOrchestrator(
         val spec = skillRegistry[skillId]
         if (spec == null) {
             Log.w(TAG, "unknown skill_id=\"$skillId\"; available=${skillRegistry.keys}")
+            onStateChanged(OrchestratorState.ERROR)
             return
         }
+        onStateChanged(OrchestratorState.EXECUTING)
         Log.i(TAG, "executing: \"$skillId\" inputs=$inputs")
         val result = runCatching { skillRunner.run(spec, inputs) }
             .fold(
@@ -120,6 +127,12 @@ class AgentOrchestrator(
                 },
             )
         logResult(skillId, result)
+
+        if (result.ok) {
+            onStateChanged(OrchestratorState.DONE)
+        } else {
+            onStateChanged(OrchestratorState.ERROR)
+        }
 
         if (!result.ok) {
             handleRecovery(spec, result, originalText)

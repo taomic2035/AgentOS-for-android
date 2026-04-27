@@ -52,6 +52,7 @@
 - [V0.1 任务计划](06-roadmap/v0.1-task-plan.md) — 风险前置垂直切片（来自迭代前反思）
 - [V0.1 Release Notes](06-roadmap/release-notes-v0.1.md) — ✅ 验收通过 2026-04-26
 - [V0.2 Release Notes](06-roadmap/release-notes-v0.2.md) — ✅ 验收通过 2026-04-27
+- [V0.3 Release Notes](06-roadmap/release-notes-v0.3.md) — ✅ 验收通过 2026-04-27
 - [发布检查清单](06-roadmap/release-checklist.md)
 
 ## ADR — 架构决策记录

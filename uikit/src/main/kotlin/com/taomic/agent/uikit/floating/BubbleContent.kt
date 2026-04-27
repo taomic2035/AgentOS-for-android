@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,7 +18,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,37 +37,42 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * V0.1b 浮窗内容：圆按钮（collapsed）↔ 展开卡片（expanded）。
+ * V0.3 浮窗内容：圆按钮（collapsed）↔ 展开卡片（expanded）。
  *
  * - collapsed：56dp Cat 圆按钮；轻触展开；拖拽移动浮窗
- * - expanded：圆角卡片 + 两个快捷 chip + 关闭按钮
+ * - expanded：圆角卡片 + 输入框 + 发送按钮 + 快捷 chip + 关闭按钮
+ *     输入框 + 发送 → onIntent(text)
  *     chip "打开网络" → onIntent("网络")
  *     chip "看三体"   → onIntent("三体")
+ *     麦克风按钮     → onMic（V0.3 SpeechRecognizer）
  *     关闭按钮       → 退回 collapsed
  *
- * V0.1b 仅 chip。文字输入框 + IME 推到 V0.3 与 ASR 一起做（IME 在
- * TYPE_APPLICATION_OVERLAY 上需要切换 NOT_FOCUSABLE flag，是独立工作量）。
- *
- * 拖拽事件仅 collapsed 态生效；expanded 态不响应拖拽（避免误触）。
+ * IME 适配：展开/收起输入框时通过 onFocusableChanged 切换 WindowManager flags。
  */
 @Composable
 fun BubbleContent(
     onDragDelta: (dx: Float, dy: Float) -> Unit,
     onDragEnd: () -> Unit,
     onIntent: (text: String) -> Unit,
+    onFocusableChanged: (focusable: Boolean) -> Unit = {},
+    onMic: () -> Unit = {},
+    state: AgentState = AgentState.IDLE,
 ) {
     var expanded by remember { mutableStateOf(false) }
 
     if (!expanded) {
+        onFocusableChanged(false)
         CollapsedBubble(
             onDragDelta = onDragDelta,
             onDragEnd = onDragEnd,
             onClick = { expanded = true },
+            state = state,
         )
     } else {
         ExpandedCard(
@@ -70,6 +81,9 @@ fun BubbleContent(
                 onIntent(text)
                 expanded = false
             },
+            onFocusableChanged = onFocusableChanged,
+            onMic = onMic,
+            state = state,
         )
     }
 }
@@ -79,7 +93,21 @@ private fun CollapsedBubble(
     onDragDelta: (dx: Float, dy: Float) -> Unit,
     onDragEnd: () -> Unit,
     onClick: () -> Unit,
+    state: AgentState,
 ) {
+    val bgColor = when (state) {
+        AgentState.THINKING, AgentState.EXECUTING -> Color(0xFFE8DEF8)
+        AgentState.ERROR -> Color(0xFFFFCDD2)
+        else -> AccentPurple
+    }
+    val label = when (state) {
+        AgentState.THINKING -> "..."
+        AgentState.EXECUTING -> "▶"
+        AgentState.ERROR -> "!"
+        AgentState.DONE -> "✓"
+        else -> "Cat"
+    }
+
     Surface(
         modifier = Modifier
             .size(56.dp)
@@ -97,7 +125,7 @@ private fun CollapsedBubble(
             .pointerInput(Unit) {
                 detectTapGestures(onTap = { onClick() })
             },
-        color = AccentPurple,
+        color = bgColor,
         shadowElevation = 6.dp,
     ) {
         Box(
@@ -105,7 +133,7 @@ private fun CollapsedBubble(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Cat",
+                text = label,
                 color = Color.White,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 16.sp,
@@ -119,10 +147,15 @@ private fun CollapsedBubble(
 private fun ExpandedCard(
     onClose: () -> Unit,
     onIntent: (String) -> Unit,
+    onFocusableChanged: (Boolean) -> Unit,
+    onMic: () -> Unit,
+    state: AgentState,
 ) {
+    var inputText by remember { mutableStateOf("") }
+
     Surface(
         modifier = Modifier
-            .widthIn(min = 280.dp, max = 320.dp)
+            .widthIn(min = 280.dp, max = 340.dp)
             .clip(RoundedCornerShape(16.dp)),
         color = Color.White,
         shadowElevation = 8.dp,
@@ -162,6 +195,72 @@ private fun ExpandedCard(
                 )
             }
 
+            // 状态提示
+            if (state != AgentState.IDLE) {
+                val statusText = when (state) {
+                    AgentState.THINKING -> "正在思考..."
+                    AgentState.EXECUTING -> "正在执行..."
+                    AgentState.DONE -> "完成"
+                    AgentState.ERROR -> "出错了，请重试"
+                    else -> ""
+                }
+                val statusColor = when (state) {
+                    AgentState.THINKING, AgentState.EXECUTING -> Color(0xFF6750A4)
+                    AgentState.DONE -> Color(0xFF1F8E3E)
+                    AgentState.ERROR -> Color(0xFFB02020)
+                    else -> Color.Gray
+                }
+                Text(
+                    text = statusText,
+                    fontSize = 12.sp,
+                    color = statusColor,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            // 输入框 + 发送 + 麦克风
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("说点什么...", fontSize = 13.sp, color = Color(0xFFAAAAAA)) },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentPurple,
+                        unfocusedBorderColor = Color(0xFFCCCCCC),
+                        cursorColor = AccentPurple,
+                    ),
+                )
+                Button(
+                    onClick = {
+                        if (inputText.isNotBlank()) {
+                            onIntent(inputText.trim())
+                            inputText = ""
+                        }
+                    },
+                    modifier = Modifier.height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                ) {
+                    Text("发送", fontSize = 12.sp, color = Color.White)
+                }
+                // 麦克风按钮（V0.3 SpeechRecognizer 占位）
+                Button(
+                    onClick = onMic,
+                    modifier = Modifier.size(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE8DEF8)),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                ) {
+                    Text("🎤", fontSize = 16.sp)
+                }
+            }
+
             // 快捷 chip
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(
@@ -187,6 +286,15 @@ private fun ExpandedCard(
             }
         }
     }
+}
+
+/** Agent 执行状态，供浮窗 UI 消费。 */
+enum class AgentState {
+    IDLE,           // 空闲，等待输入
+    THINKING,       // LLM 思考中
+    EXECUTING,      // Skill 执行中
+    DONE,           // 完成
+    ERROR,          // 出错
 }
 
 private val AccentPurple = Color(0xFF6750A4)

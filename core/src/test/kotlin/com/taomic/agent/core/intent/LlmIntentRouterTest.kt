@@ -114,5 +114,10 @@ class LlmIntentRouterTest {
             return completion
         }
         override suspend fun ping(): Boolean = !shouldThrow
+        override suspend fun chatStream(messages: List<ChatMessage>, onToken: (String) -> Unit): ChatCompletion {
+            if (shouldThrow) throw RuntimeException("LLM error")
+            completion.content?.let { onToken(it) }
+            return completion
+        }
     }
 }

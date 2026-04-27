@@ -3,9 +3,10 @@ package com.taomic.agent.core.llm
 /**
  * LLM 客户端契约（定义在 :core，实现在 :llm）。
  *
- * 支持两种交互模式：
+ * 支持三种交互模式：
  * 1. **纯对话**：[chat] 返回文本回复
- * 2. **Tool-use**：[chatWithTools] 返回可能包含 tool_call 的回复，调用方执行后可 [appendToolResult] 继续
+ * 2. **Tool-use**：[chatWithTools] 返回可能包含 tool_call 的回复
+ * 3. **流式对话**：[chatStream] 逐 token 回调
  */
 interface LlmClient {
 
@@ -20,6 +21,19 @@ interface LlmClient {
 
     /** 验证连接可用性（发一条短请求测试 url/key/model）。 */
     suspend fun ping(): Boolean
+
+    /** 流式对话：逐 token 回调 [onToken]，完成后返回完整 ChatCompletion。 */
+    suspend fun chatStream(messages: List<ChatMessage>, onToken: (token: String) -> Unit): ChatCompletion
+}
+
+/** 流式回调接口，供 UI 层消费。 */
+interface StreamCallback {
+    /** 收到一个 token。 */
+    fun onToken(token: String)
+    /** 流式完成。 */
+    fun onComplete(completion: ChatCompletion)
+    /** 流式出错。 */
+    fun onError(error: Throwable)
 }
 
 data class ChatMessage(

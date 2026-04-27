@@ -11,11 +11,11 @@
 
 ## 当前进度
 
-**V0.2 ✅ 验收通过** (2026-04-27) —— LLM 智能层接入，ChainedRouter（关键词 → LLM 兜底），OpenAI 兼容客户端，设置页连接测试。
+**V0.3 ✅ 验收通过** (2026-04-27) —— 输入闭环：浮窗文字输入 + 麦克风 + LLM 流式响应 + 状态机 UI + 独立设置页。
 
-详见 [`docs/06-roadmap/release-notes-v0.2.md`](docs/06-roadmap/release-notes-v0.2.md)。
+详见 [`docs/06-roadmap/release-notes-v0.3.md`](docs/06-roadmap/release-notes-v0.3.md)。
 
-下一步：V0.3 语音 + 文字双输入。
+下一步：V0.4 Skill 录制。
 
 ## 架构概览
 

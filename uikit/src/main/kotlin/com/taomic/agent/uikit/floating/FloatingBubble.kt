@@ -6,26 +6,20 @@ import android.os.Build
 import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.taomic.agent.uikit.speech.SpeechRecognizerHelper
 
 /**
  * 浮窗 host。负责：
  *  - 把 ComposeView 加到 WindowManager（TYPE_APPLICATION_OVERLAY）
- *  - 接收 [BubbleContent] 通过 Compose pointerInput 报告的手势：
- *      onDragDelta(dx, dy)：实时累加到 LayoutParams.x/y 并 updateViewLayout
- *      onDragEnd()：吸附到屏幕左/右边缘
- *      onIntent(text)：用户在 expanded 卡片上点 chip 触发的意图文本，转发给业务层
+ *  - 接收 [BubbleContent] 通过 Compose pointerInput 报告的手势
+ *  - IME flag 动态切换：展开输入框时允许焦点和键盘，收起时恢复 NOT_FOCUSABLE
  *
  * 单例语义：一次只能有一个浮窗实例。重复 [show] 是 no-op。
- *
- * 使用 application context；浮窗生命周期独立于 Activity。T-004 后由
- * AgentForegroundService 接管 [show] / [hide]。
- *
- * 调用方负责 SYSTEM_ALERT_WINDOW 权限检查；权限缺失时 [WindowManager.addView]
- * 抛异常，本类捕获并记日志，[isShown] 仍返回 false。
  */
 class FloatingBubble(
     private val appContext: Context,
@@ -37,8 +31,16 @@ class FloatingBubble(
     private var composeView: ComposeView? = null
     private val owner = FloatingWindowOwner()
     private var params: WindowManager.LayoutParams? = null
+    private var speechHelper: SpeechRecognizerHelper? = null
+    @Volatile
+    private var agentState: AgentState = AgentState.IDLE
 
     fun isShown(): Boolean = composeView != null
+
+    /** 更新 Agent 执行状态，浮窗 UI 会随之变化。 */
+    fun updateState(state: AgentState) {
+        agentState = state
+    }
 
     fun show() {
         if (composeView != null) return
@@ -55,6 +57,20 @@ class FloatingBubble(
                     onIntent = { text ->
                         Log.d(TAG, "intent text=\"$text\"")
                         onIntent(text)
+                    },
+                    onFocusableChanged = { focusable -> updateFocusable(focusable) },
+                    state = agentState,
+                    onMic = {
+                        val helper = speechHelper ?: SpeechRecognizerHelper(
+                            appContext,
+                            onResult = { text -> onIntent(text) },
+                            onError = { Log.w(TAG, "ASR error: $it") },
+                        ).also { speechHelper = it }
+                        if (helper.isAvailable) {
+                            helper.startListening()
+                        } else {
+                            Log.w(TAG, "SpeechRecognizer not available")
+                        }
                     },
                 )
             }
@@ -74,11 +90,31 @@ class FloatingBubble(
 
     fun hide() {
         val v = composeView ?: return
+        speechHelper?.destroy()
+        speechHelper = null
         runCatching { wm.removeView(v) }
         owner.onDetached()
         composeView = null
         params = null
         Log.i(TAG, "FloatingBubble hidden")
+    }
+
+    /** 切换 WindowManager flags 以允许/禁止键盘焦点。 */
+    private fun updateFocusable(focusable: Boolean) {
+        val view = composeView ?: return
+        val p = params ?: return
+        if (focusable) {
+            p.flags = WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+        } else {
+            p.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+            // 收起时隐藏键盘
+            val imm = appContext.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+        runCatching { wm.updateViewLayout(view, p) }
+        Log.d(TAG, "focusable=$focusable flags=${p.flags}")
     }
 
     private fun buildLayoutParams(): WindowManager.LayoutParams =
@@ -91,7 +127,6 @@ class FloatingBubble(
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             }
-            // 接收 touch（不带 NOT_TOUCHABLE）；不抢焦点；允许铺满屏幕计算坐标
             flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             format = PixelFormat.TRANSLUCENT
