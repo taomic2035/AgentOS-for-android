@@ -65,7 +65,10 @@ fun BubbleContent(
     onStartRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
     onCancelRecording: () -> Unit = {},
+    onSaveRecordedSkill: (id: String, name: String, description: String) -> Unit = { _, _, _ -> },
+    onDiscardRecording: () -> Unit = {},
     state: AgentState = AgentState.IDLE,
+    recordedSteps: List<String> = emptyList(),
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -89,7 +92,10 @@ fun BubbleContent(
             onStartRecording = onStartRecording,
             onStopRecording = onStopRecording,
             onCancelRecording = onCancelRecording,
+            onSaveRecordedSkill = onSaveRecordedSkill,
+            onDiscardRecording = onDiscardRecording,
             state = state,
+            recordedSteps = recordedSteps,
         )
     }
 }
@@ -160,7 +166,10 @@ private fun ExpandedCard(
     onStartRecording: () -> Unit,
     onStopRecording: () -> Unit,
     onCancelRecording: () -> Unit,
+    onSaveRecordedSkill: (id: String, name: String, description: String) -> Unit,
+    onDiscardRecording: () -> Unit,
     state: AgentState,
+    recordedSteps: List<String>,
 ) {
     var inputText by remember { mutableStateOf("") }
 
@@ -306,6 +315,61 @@ private fun ExpandedCard(
                         label = { Text("录制") },
                         colors = AssistChipDefaults.assistChipColors(labelColor = Color(0xFFB02020)),
                     )
+                }
+            }
+
+            // 录制审阅：有录制结果时显示
+            if (recordedSteps.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "录制完成 — ${recordedSteps.size} 步",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = Color(0xFF1F8E3E),
+                    )
+                    recordedSteps.forEachIndexed { index, step ->
+                        Text(
+                            text = "${index + 1}. $step",
+                            fontSize = 11.sp,
+                            color = Color(0xFF444444),
+                            maxLines = 2,
+                        )
+                    }
+                    var skillId by remember { mutableStateOf("") }
+                    var skillName by remember { mutableStateOf("") }
+                    OutlinedTextField(
+                        value = skillId,
+                        onValueChange = { skillId = it },
+                        placeholder = { Text("Skill ID", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                    )
+                    OutlinedTextField(
+                        value = skillName,
+                        onValueChange = { skillName = it },
+                        placeholder = { Text("Skill 名称", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodySmall,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                if (skillId.isNotBlank() && skillName.isNotBlank()) {
+                                    onSaveRecordedSkill(skillId.trim(), skillName.trim(), "")
+                                }
+                            },
+                            enabled = skillId.isNotBlank() && skillName.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentPurple),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                        ) {
+                            Text("保存", fontSize = 12.sp, color = Color.White)
+                        }
+                        TextButton(onClick = onDiscardRecording) {
+                            Text("丢弃", color = Color(0xFFB02020), fontSize = 12.sp)
+                        }
+                    }
                 }
             }
 

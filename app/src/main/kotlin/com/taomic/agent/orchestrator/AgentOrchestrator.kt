@@ -5,6 +5,8 @@ import com.taomic.agent.core.A11yController
 import com.taomic.agent.core.intent.IntentRouter
 import com.taomic.agent.core.intent.KeywordIntentRouter
 import com.taomic.agent.core.intent.RouteResult
+import com.taomic.agent.data.HabitEvent
+import com.taomic.agent.data.HabitRepository
 import com.taomic.agent.recorder.SkillRecorder
 import com.taomic.agent.recorder.SkillStore
 import com.taomic.agent.skill.SkillResult
@@ -32,6 +34,7 @@ class AgentOrchestrator(
     intentRouter: IntentRouter = KeywordIntentRouter(),
     private val a11yController: A11yController? = null,
     private val skillStore: SkillStore? = null,
+    private val habitRepository: HabitRepository? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val onStateChanged: (state: OrchestratorState) -> Unit = {},
 ) {
@@ -135,6 +138,17 @@ class AgentOrchestrator(
                 },
             )
         logResult(skillId, result)
+
+        // V0.5 记录习惯事件
+        habitRepository?.recordEvent(
+            HabitEvent(
+                timestamp = System.currentTimeMillis(),
+                intentText = originalText ?: skillId,
+                skillId = skillId,
+                result = if (result.ok) "success" else "fail",
+                durationMs = result.durationMs,
+            )
+        )
 
         if (result.ok) {
             onStateChanged(OrchestratorState.DONE)

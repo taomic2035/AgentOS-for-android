@@ -11,11 +11,11 @@
 
 ## 当前进度
 
-**V0.4 ✅ 验收通过** (2026-04-27) —— Skill 录制：A11y 事件录制器 + Skill YAML 持久化 + 动态加载 + 浮窗录制 UI + 设置页 Skill 管理。
+**V0.5 ✅ 验收通过** (2026-04-27) —— 习惯/记忆：Room DB HabitEvent + HabitCacheRouter 缓存命中 + 录制审阅页 + 偏好表。
 
-详见 [`docs/06-roadmap/release-notes-v0.4.md`](docs/06-roadmap/release-notes-v0.4.md)。
+详见 [`docs/06-roadmap/release-notes-v0.5.md`](docs/06-roadmap/release-notes-v0.5.md)。
 
-下一步：V0.5 习惯/记忆。
+下一步：V0.6 五大场景。
 
 ## 架构概览
 

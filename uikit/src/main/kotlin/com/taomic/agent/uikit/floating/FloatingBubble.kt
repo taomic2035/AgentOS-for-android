@@ -27,6 +27,8 @@ class FloatingBubble(
     private val onStartRecording: () -> Unit = {},
     private val onStopRecording: () -> Unit = {},
     private val onCancelRecording: () -> Unit = {},
+    private val onSaveRecordedSkill: (id: String, name: String, description: String) -> Unit = { _, _, _ -> },
+    private val onDiscardRecording: () -> Unit = {},
 ) {
 
     private val wm: WindowManager =
@@ -37,12 +39,24 @@ class FloatingBubble(
     private var speechHelper: SpeechRecognizerHelper? = null
     @Volatile
     private var agentState: AgentState = AgentState.IDLE
+    @Volatile
+    private var recordedSteps: List<String> = emptyList()
 
     fun isShown(): Boolean = composeView != null
 
     /** 更新 Agent 执行状态，浮窗 UI 会随之变化。 */
     fun updateState(state: AgentState) {
         agentState = state
+    }
+
+    /** 更新录制步骤列表（录制停止后调用）。 */
+    fun updateRecordedSteps(steps: List<String>) {
+        recordedSteps = steps
+    }
+
+    /** 清除录制步骤（保存或丢弃后调用）。 */
+    fun clearRecordedSteps() {
+        recordedSteps = emptyList()
     }
 
     fun show() {
@@ -78,6 +92,9 @@ class FloatingBubble(
                     onStartRecording = onStartRecording,
                     onStopRecording = onStopRecording,
                     onCancelRecording = onCancelRecording,
+                    onSaveRecordedSkill = onSaveRecordedSkill,
+                    onDiscardRecording = onDiscardRecording,
+                    recordedSteps = recordedSteps,
                 )
             }
         }
