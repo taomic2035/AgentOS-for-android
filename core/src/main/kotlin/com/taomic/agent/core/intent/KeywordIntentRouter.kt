@@ -15,7 +15,7 @@ package com.taomic.agent.core.intent
  * 未装时降级到 stub）。V0.1 阶段统一指向 `stub_video_play` 让 e2e 不依赖三方 App。
  */
 class KeywordIntentRouter : IntentRouter {
-    override fun route(text: String): RouteResult {
+    override suspend fun route(text: String): RouteResult {
         val normalized = text.trim()
         if (normalized.isEmpty()) return RouteResult.Miss(text)
 

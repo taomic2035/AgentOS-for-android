@@ -94,7 +94,7 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
         }
     }
 
-    private fun activeWindowPackage(): String? = rootInActiveWindow?.packageName?.toString()
+    override fun activeWindowPackage(): String? = rootInActiveWindow?.packageName?.toString()
 
     // ---------------------------------------------------------------- 原语层
 
@@ -104,7 +104,7 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
      * 优先级：resourceId > text 精确 > containsText > desc/className BFS。
      * 调用方负责 [AccessibilityNodeInfo.recycle]（Android 13+ 已自动管理，但保持习惯）。
      */
-    fun findNode(query: NodeQuery): AccessibilityNodeInfo? {
+    override fun findNode(query: NodeQuery): AccessibilityNodeInfo? {
         if (query.isEmpty) return null
         val root = rootInActiveWindow ?: return null
 
@@ -150,7 +150,7 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
     }
 
     /** 查找 → 找最近 clickable 祖先 → performAction(ACTION_CLICK)。 */
-    fun clickNode(query: NodeQuery): Boolean {
+    override fun clickNode(query: NodeQuery): Boolean {
         val match = findNode(query) ?: run {
             Log.w(TAG, "clickNode: no match for $query (pkg=${activeWindowPackage()})")
             return false
@@ -165,7 +165,7 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
     }
 
     /** 在 [target] 命中节点上写 [text]；[clearFirst]=true 时先清空。 */
-    fun inputText(target: NodeQuery, text: String, clearFirst: Boolean): Boolean {
+    override fun inputText(target: NodeQuery, text: String, clearFirst: Boolean): Boolean {
         val node = findNode(target) ?: run {
             Log.w(TAG, "inputText: no match for $target")
             return false
@@ -217,6 +217,48 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
             hops++
         }
         return null
+    }
+
+    // ---------------------------------------------------------------- A11yController.dumpScreen
+
+    /** 输出当前屏幕节点树的精简文本摘要，供 LLM 消费。 */
+    override fun dumpScreen(): String {
+        val root = rootInActiveWindow ?: return "(no active window)"
+        val sb = StringBuilder()
+        dumpNodeCompact(root, depth = 0, sb = sb, budget = 100)
+        return sb.toString()
+    }
+
+    /** 精简版 dump：只输出有语义的节点（有 text/desc/clickable），省略纯布局容器。 */
+    private fun dumpNodeCompact(
+        node: AccessibilityNodeInfo,
+        depth: Int,
+        sb: StringBuilder,
+        budget: Int,
+    ): Int {
+        if (budget <= 0) return 0
+        val text = node.text?.toString()
+        val desc = node.contentDescription?.toString()
+        val resId = node.viewIdResourceName?.substringAfterLast('/')
+        val clickable = node.isClickable
+        val className = node.className?.toString()?.substringAfterLast('.') ?: "?"
+        val hasSemantic = !text.isNullOrBlank() || !desc.isNullOrBlank() || clickable || !resId.isNullOrBlank()
+        if (hasSemantic) {
+            val indent = "  ".repeat(depth.coerceAtMost(8))
+            sb.append(indent).append('<').append(className)
+            if (!resId.isNullOrBlank()) sb.append(" id=").append(resId)
+            if (!text.isNullOrBlank()) sb.append(" text=\"").append(text.take(80)).append('"')
+            if (!desc.isNullOrBlank()) sb.append(" desc=\"").append(desc.take(80)).append('"')
+            if (clickable) sb.append(" clickable")
+            sb.append(">\n")
+        }
+        var consumed = if (hasSemantic) 1 else 0
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            consumed += dumpNodeCompact(child, depth + (if (hasSemantic) 1 else 0), sb, budget - consumed)
+            if (consumed >= budget) break
+        }
+        return consumed
     }
 
     // ---------------------------------------------------------------- 调试 dump

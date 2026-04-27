@@ -11,11 +11,11 @@
 
 ## 当前进度
 
-**V0.1 ✅ 验收通过** (2026-04-26) —— 浮窗 chip "看三体" → stub-video 自动搜索播放，端到端 1.1 秒。
+**V0.2 ✅ 验收通过** (2026-04-27) —— LLM 智能层接入，ChainedRouter（关键词 → LLM 兜底），OpenAI 兼容客户端，设置页连接测试。
 
-详见 [`docs/06-roadmap/release-notes-v0.1.md`](docs/06-roadmap/release-notes-v0.1.md)。
+详见 [`docs/06-roadmap/release-notes-v0.2.md`](docs/06-roadmap/release-notes-v0.2.md)。
 
-下一步：V0.2 LLM 真实接入。
+下一步：V0.3 语音 + 文字双输入。
 
 ## 架构概览
 

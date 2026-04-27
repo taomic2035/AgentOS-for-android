@@ -43,7 +43,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.taomic.agent.AgentApp
+import com.taomic.agent.llm.OpenAiCompatClient
 import com.taomic.agent.service.AgentForegroundService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * V0.1 完整引导页：
@@ -105,12 +109,12 @@ private fun BootScreen() {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "AgentOS — V0.1",
+            "AgentOS — V0.2",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "三步设置后即可呼出 AgentOS 助手；LLM 配置可在 V0.2 接入前先跳过。",
+            "三步设置后即可呼出 AgentOS 助手。LLM 配置后支持自然语言理解；未配置时仅支持关键词指令。",
             style = MaterialTheme.typography.bodyMedium,
             color = Color(0xFF6B6B6B),
         )
@@ -232,6 +236,8 @@ private fun LlmCard(
     var baseUrl by remember { mutableStateOf(store.baseUrl) }
     var apiKey by remember { mutableStateOf(store.apiKey) }
     var model by remember { mutableStateOf(store.model) }
+    var pingResult by remember { mutableStateOf<String?>(null) }
+    var pinging by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -257,7 +263,7 @@ private fun LlmCard(
                 Text(
                     text = when {
                         ready -> "已配置"
-                        else -> "可跳过 (V0.2 才需要)"
+                        else -> "可选 (未配置则仅支持关键词指令)"
                     },
                     color = if (ready) Color(0xFF1F8E3E) else Color(0xFFB07A00),
                     style = MaterialTheme.typography.bodySmall,
@@ -301,6 +307,39 @@ private fun LlmCard(
                     onSaved()
                     expanded = false
                 }) { Text("保存") }
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = {
+                            pinging = true
+                            pingResult = null
+                            val tempStore = store
+                            CoroutineScope(Dispatchers.Main).launch {
+                                val result = try {
+                                    val client = OpenAiCompatClient(
+                                        baseUrl = baseUrl.trim(),
+                                        apiKey = apiKey.trim(),
+                                        model = model.trim(),
+                                    )
+                                    if (client.ping()) "连接成功" else "连接失败"
+                                } catch (e: Exception) {
+                                    "错误: ${e.message?.take(60)}"
+                                }
+                                pingResult = result
+                                pinging = false
+                            }
+                        },
+                        enabled = !pinging,
+                    ) { Text(if (pinging) "测试中..." else "测试连接") }
+                    if (pingResult != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            pingResult!!,
+                            color = if (pingResult == "连接成功") Color(0xFF1F8E3E) else Color(0xFFB02020),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
             }
         }
     }

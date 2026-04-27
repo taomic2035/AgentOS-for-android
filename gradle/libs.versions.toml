@@ -11,6 +11,7 @@ savedstate = "1.2.1"
 coroutines = "1.7.3"
 serialization = "1.6.2"
 okhttp = "4.12.0"
+okhttp-mockwebserver = "4.12.0"
 snakeyaml = "2.2"
 kaml = "0.57.0"
 timber = "5.0.1"
@@ -38,10 +39,12 @@ androidx-savedstate-ktx = { group = "androidx.savedstate", name = "savedstate-kt
 
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "serialization" }
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", version.ref = "okhttp" }
 
 snakeyaml = { group = "org.yaml", name = "snakeyaml", version.ref = "snakeyaml" }
 kaml = { group = "com.charleskorn.kaml", name = "kaml", version.ref = "kaml" }

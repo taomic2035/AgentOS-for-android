@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.accessibility.AccessibilityNodeInfo
+import com.taomic.agent.core.A11yController
 import com.taomic.agent.core.action.ActionContext
 import com.taomic.agent.core.action.ActionOutcome
 import com.taomic.agent.core.action.GlobalKey
@@ -14,13 +16,14 @@ import kotlinx.coroutines.withTimeoutOrNull
 /**
  * [ActionContext] 的 Android 实现：把 SkillRunner 的请求转化为
  *  - [Context.startActivity]（launchApp）
- *  - [AgentAccessibilityService] 原语（waitNode / clickNode / inputText）
+ *  - [A11yController] 原语（waitNode / clickNode / inputText）
  *  - [AccessibilityService.performGlobalAction]（pressKey）
  *
- * Service 引用通过 [serviceProvider] 注入，便于在 Service 未连接时返回 Failed。
+ * 通过 [controllerProvider] 注入 [A11yController]，便于测试与服务未连接时返回 Failed。
  */
 class A11yActionContext(
     private val appContext: Context,
+    private val controllerProvider: () -> A11yController? = { AgentAccessibilityService.instance() },
     private val serviceProvider: () -> AgentAccessibilityService? = { AgentAccessibilityService.instance() },
 ) : ActionContext {
 
@@ -32,9 +35,6 @@ class A11yActionContext(
         } else {
             Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply { setPackage(packageName) }
         }
-        // CLEAR_TASK 确保每次 skill 执行时目标 App 都从 launcher Activity 开始；
-        // 不带这个 flag 时若 App 已有任务栈（例如停在子页），launchIntent 会恢复到栈顶
-        // Activity，导致后续 wait_node / click_node 找的是错误的页面节点。
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         return runCatching { appContext.startActivity(intent) }
             .fold(
@@ -48,9 +48,9 @@ class A11yActionContext(
         val started = System.currentTimeMillis()
         val hit: Boolean? = withTimeoutOrNull(timeoutMs) {
             while (true) {
-                val service = serviceProvider()
-                    ?: return@withTimeoutOrNull false // 区分：service 未连（非超时）
-                if (service.findNode(query) != null) return@withTimeoutOrNull true
+                val controller = controllerProvider()
+                    ?: return@withTimeoutOrNull false
+                if (controller.findNode(query) != null) return@withTimeoutOrNull true
                 delay(POLL_INTERVAL_MS)
             }
             @Suppress("UNREACHABLE_CODE") false
@@ -63,13 +63,13 @@ class A11yActionContext(
     }
 
     override suspend fun clickNode(query: NodeQuery): ActionOutcome {
-        val service = serviceProvider() ?: return ActionOutcome.Failed("a11y service not connected")
-        return if (service.clickNode(query)) ActionOutcome.Success() else ActionOutcome.Failed("no clickable match for $query")
+        val controller = controllerProvider() ?: return ActionOutcome.Failed("a11y service not connected")
+        return if (controller.clickNode(query)) ActionOutcome.Success() else ActionOutcome.Failed("no clickable match for $query")
     }
 
     override suspend fun inputText(target: NodeQuery, text: String, clearFirst: Boolean): ActionOutcome {
-        val service = serviceProvider() ?: return ActionOutcome.Failed("a11y service not connected")
-        return if (service.inputText(target, text, clearFirst)) ActionOutcome.Success() else ActionOutcome.Failed("input failed for $target")
+        val controller = controllerProvider() ?: return ActionOutcome.Failed("a11y service not connected")
+        return if (controller.inputText(target, text, clearFirst)) ActionOutcome.Success() else ActionOutcome.Failed("input failed for $target")
     }
 
     override suspend fun pressKey(key: GlobalKey): ActionOutcome {

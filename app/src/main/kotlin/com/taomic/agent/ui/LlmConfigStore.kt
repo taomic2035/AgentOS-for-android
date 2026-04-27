@@ -2,6 +2,7 @@ package com.taomic.agent.ui
 
 import android.content.Context
 import com.taomic.agent.llm.LlmAdapter
+import com.taomic.agent.llm.OpenAiCompatClient
 
 /**
  * LLM 用户可配置项的存储。V0.1 用 SharedPreferences；V0.9 合规阶段切到
@@ -32,9 +33,15 @@ class LlmConfigStore(context: Context) {
             prefs.edit().putString(KEY_MODEL, value).apply()
         }
 
-    /** V0.2 LLM 接入前唯一被使用的字段：是否已配 key。未配则浮窗 LLM 路径会兜底。 */
     val isConfigured: Boolean
         get() = apiKey.isNotBlank()
+
+    /** 根据当前配置创建 LlmClient 实例。 */
+    fun createClient(): OpenAiCompatClient = OpenAiCompatClient(
+        baseUrl = baseUrl,
+        apiKey = apiKey,
+        model = model,
+    )
 
     companion object {
         private const val KEY_BASE_URL = "base_url"
