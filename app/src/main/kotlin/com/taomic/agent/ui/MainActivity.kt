@@ -109,7 +109,7 @@ private fun BootScreen() {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "AgentOS — V0.3",
+            "AgentOS — V0.5",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -320,8 +320,8 @@ private fun LlmCard(
                         onClick = {
                             pinging = true
                             pingResult = null
-                            val tempStore = store
                             CoroutineScope(Dispatchers.Main).launch {
+
                                 val result = try {
                                     val client = OpenAiCompatClient(
                                         baseUrl = baseUrl.trim(),

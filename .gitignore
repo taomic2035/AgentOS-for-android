@@ -28,3 +28,9 @@ secrets.properties
 **/keystore.properties
 *.keystore
 *.jks
+
+# Test artifacts (screenshots, logcat dumps — keep local, don't track)
+scripts/test-artifacts/
+
+# OS
+Thumbs.db

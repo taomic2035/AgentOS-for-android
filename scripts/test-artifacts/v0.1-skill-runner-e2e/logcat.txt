@@ -1,9 +1,0 @@
---------- beginning of main
-04-26 21:57:41.569  7709  7709 I AgentApp: RUN_SKILL: "settings_open_internet" inputs={}
-04-26 21:57:41.859  7709  7766 I AgentA11y: clickNode NodeQuery(text=Network & internet, containsText=null, resourceId=null, desc=null, className=null, index=0) → performed=true
-04-26 21:57:41.893  7709  7709 I AgentA11y: window changed → com.android.settings
-04-26 21:57:41.914  7709  7766 I AgentApp: RUN_SKILL[SUCCESS] "settings_open_internet" steps=4/4 dur=344ms err=null
-04-26 21:57:41.914  7709  7766 I AgentApp:   step[0] LaunchApp → Success(detail=launched com.android.settings)
-04-26 21:57:41.914  7709  7766 I AgentApp:   step[1] WaitNode → Success(detail=found in 218ms)
-04-26 21:57:41.914  7709  7766 I AgentApp:   step[2] ClickNode → Success(detail=)
-04-26 21:57:41.914  7709  7766 I AgentApp:   step[3] WaitNode → Success(detail=found in 54ms)

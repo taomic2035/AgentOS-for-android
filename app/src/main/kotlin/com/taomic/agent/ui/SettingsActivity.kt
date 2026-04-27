@@ -178,7 +178,7 @@ private fun SettingsScreen() {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("关于", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
-                Text("AgentOS V0.4 — Android 智能助手", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
+                Text("AgentOS V0.5 — Android 智能助手", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
                 Text("常驻系统、可随时呼出，理解你说的话，动手帮你做事。", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
             }
         }
