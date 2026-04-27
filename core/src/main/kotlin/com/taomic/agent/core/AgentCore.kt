@@ -12,5 +12,5 @@ package com.taomic.agent.core
  *  - Memory / Habit / Preference 接口契约
  */
 object AgentCore {
-    const val VERSION: String = "0.3.0"
+    const val VERSION: String = "0.4.0"
 }

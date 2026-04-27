@@ -62,6 +62,9 @@ fun BubbleContent(
     onIntent: (text: String) -> Unit,
     onFocusableChanged: (focusable: Boolean) -> Unit = {},
     onMic: () -> Unit = {},
+    onStartRecording: () -> Unit = {},
+    onStopRecording: () -> Unit = {},
+    onCancelRecording: () -> Unit = {},
     state: AgentState = AgentState.IDLE,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -83,6 +86,9 @@ fun BubbleContent(
             },
             onFocusableChanged = onFocusableChanged,
             onMic = onMic,
+            onStartRecording = onStartRecording,
+            onStopRecording = onStopRecording,
+            onCancelRecording = onCancelRecording,
             state = state,
         )
     }
@@ -97,12 +103,14 @@ private fun CollapsedBubble(
 ) {
     val bgColor = when (state) {
         AgentState.THINKING, AgentState.EXECUTING -> Color(0xFFE8DEF8)
+        AgentState.RECORDING -> Color(0xFFFFCDD2)
         AgentState.ERROR -> Color(0xFFFFCDD2)
         else -> AccentPurple
     }
     val label = when (state) {
         AgentState.THINKING -> "..."
         AgentState.EXECUTING -> "▶"
+        AgentState.RECORDING -> "●"
         AgentState.ERROR -> "!"
         AgentState.DONE -> "✓"
         else -> "Cat"
@@ -149,6 +157,9 @@ private fun ExpandedCard(
     onIntent: (String) -> Unit,
     onFocusableChanged: (Boolean) -> Unit,
     onMic: () -> Unit,
+    onStartRecording: () -> Unit,
+    onStopRecording: () -> Unit,
+    onCancelRecording: () -> Unit,
     state: AgentState,
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -200,12 +211,14 @@ private fun ExpandedCard(
                 val statusText = when (state) {
                     AgentState.THINKING -> "正在思考..."
                     AgentState.EXECUTING -> "正在执行..."
+                    AgentState.RECORDING -> "录制中..."
                     AgentState.DONE -> "完成"
                     AgentState.ERROR -> "出错了，请重试"
                     else -> ""
                 }
                 val statusColor = when (state) {
                     AgentState.THINKING, AgentState.EXECUTING -> Color(0xFF6750A4)
+                    AgentState.RECORDING -> Color(0xFFB02020)
                     AgentState.DONE -> Color(0xFF1F8E3E)
                     AgentState.ERROR -> Color(0xFFB02020)
                     else -> Color.Gray
@@ -261,18 +274,39 @@ private fun ExpandedCard(
                 }
             }
 
-            // 快捷 chip
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(
-                    onClick = { onIntent("网络") },
-                    label = { Text("打开网络") },
-                    colors = AssistChipDefaults.assistChipColors(labelColor = AccentPurple),
-                )
-                AssistChip(
-                    onClick = { onIntent("三体") },
-                    label = { Text("看三体") },
-                    colors = AssistChipDefaults.assistChipColors(labelColor = AccentPurple),
-                )
+            // 快捷 chip + 录制控制
+            if (state == AgentState.RECORDING) {
+                // 录制中：停止 / 取消
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onStopRecording,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1F8E3E)),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                    ) {
+                        Text("停止录制", fontSize = 12.sp, color = Color.White)
+                    }
+                    TextButton(onClick = onCancelRecording) {
+                        Text("取消", color = Color(0xFFB02020), fontSize = 12.sp)
+                    }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = { onIntent("网络") },
+                        label = { Text("打开网络") },
+                        colors = AssistChipDefaults.assistChipColors(labelColor = AccentPurple),
+                    )
+                    AssistChip(
+                        onClick = { onIntent("三体") },
+                        label = { Text("看三体") },
+                        colors = AssistChipDefaults.assistChipColors(labelColor = AccentPurple),
+                    )
+                    AssistChip(
+                        onClick = onStartRecording,
+                        label = { Text("录制") },
+                        colors = AssistChipDefaults.assistChipColors(labelColor = Color(0xFFB02020)),
+                    )
+                }
             }
 
             // 底部关闭
@@ -293,6 +327,7 @@ enum class AgentState {
     IDLE,           // 空闲，等待输入
     THINKING,       // LLM 思考中
     EXECUTING,      // Skill 执行中
+    RECORDING,      // 录制模式
     DONE,           // 完成
     ERROR,          // 出错
 }

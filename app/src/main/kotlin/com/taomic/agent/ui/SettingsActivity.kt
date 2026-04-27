@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.taomic.agent.AgentApp
 import com.taomic.agent.llm.OpenAiCompatClient
+import com.taomic.agent.skill.dsl.SkillSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -176,9 +178,66 @@ private fun SettingsScreen() {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("关于", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
-                Text("AgentOS V0.3 — Android 智能助手", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
+                Text("AgentOS V0.4 — Android 智能助手", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
                 Text("常驻系统、可随时呼出，理解你说的话，动手帮你做事。", style = MaterialTheme.typography.bodySmall, color = Color(0xFF555555))
+            }
+        }
+
+        // Skill 管理卡片
+        val orchestrator = remember { app.orchestrator() }
+        var skills by remember { mutableStateOf(orchestrator.skillIds.toList()) }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F7F7)),
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Skill 管理", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "已注册 ${skills.size} 个 Skill（含内置 + 用户录制）",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF555555),
+                )
+
+                if (skills.isEmpty()) {
+                    Text("暂无 Skill，点击浮窗「录制」按钮开始录制。", style = MaterialTheme.typography.bodySmall, color = Color(0xFF999999))
+                } else {
+                    for (id in skills) {
+                        val spec = orchestrator.findSkill(id)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(spec?.name ?: id, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "${spec?.steps?.size ?: 0} 步${if (spec?.description != null) " · ${spec.description}" else ""}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFF777777),
+                                )
+                            }
+                            // 仅用户录制的 Skill 可删除（非内置）
+                            if (spec != null && isUserSkill(spec)) {
+                                TextButton(onClick = {
+                                    orchestrator.deleteUserSkill(id)
+                                    skills = orchestrator.skillIds.toList()
+                                }) {
+                                    Text("删除", color = Color(0xFFB02020), style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                OutlinedButton(onClick = {
+                    skills = orchestrator.skillIds.toList()
+                }) { Text("刷新") }
             }
         }
     }
 }
+
+/** 判断是否为用户录制的 Skill（id 以 "user_" 开头或 metadata 有标记）。 */
+private fun isUserSkill(spec: SkillSpec): Boolean =
+    spec.id.startsWith("user_") || spec.metadata?.author == "recorder"

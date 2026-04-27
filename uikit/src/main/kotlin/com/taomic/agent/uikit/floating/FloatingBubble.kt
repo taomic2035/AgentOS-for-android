@@ -24,6 +24,9 @@ import com.taomic.agent.uikit.speech.SpeechRecognizerHelper
 class FloatingBubble(
     private val appContext: Context,
     private val onIntent: (text: String) -> Unit,
+    private val onStartRecording: () -> Unit = {},
+    private val onStopRecording: () -> Unit = {},
+    private val onCancelRecording: () -> Unit = {},
 ) {
 
     private val wm: WindowManager =
@@ -72,6 +75,9 @@ class FloatingBubble(
                             Log.w(TAG, "SpeechRecognizer not available")
                         }
                     },
+                    onStartRecording = onStartRecording,
+                    onStopRecording = onStopRecording,
+                    onCancelRecording = onCancelRecording,
                 )
             }
         }

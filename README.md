@@ -11,11 +11,11 @@
 
 ## 当前进度
 
-**V0.3 ✅ 验收通过** (2026-04-27) —— 输入闭环：浮窗文字输入 + 麦克风 + LLM 流式响应 + 状态机 UI + 独立设置页。
+**V0.4 ✅ 验收通过** (2026-04-27) —— Skill 录制：A11y 事件录制器 + Skill YAML 持久化 + 动态加载 + 浮窗录制 UI + 设置页 Skill 管理。
 
-详见 [`docs/06-roadmap/release-notes-v0.3.md`](docs/06-roadmap/release-notes-v0.3.md)。
+详见 [`docs/06-roadmap/release-notes-v0.4.md`](docs/06-roadmap/release-notes-v0.4.md)。
 
-下一步：V0.4 Skill 录制。
+下一步：V0.5 习惯/记忆。
 
 ## 架构概览
 

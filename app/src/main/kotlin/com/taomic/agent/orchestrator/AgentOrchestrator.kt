@@ -5,6 +5,8 @@ import com.taomic.agent.core.A11yController
 import com.taomic.agent.core.intent.IntentRouter
 import com.taomic.agent.core.intent.KeywordIntentRouter
 import com.taomic.agent.core.intent.RouteResult
+import com.taomic.agent.recorder.SkillRecorder
+import com.taomic.agent.recorder.SkillStore
 import com.taomic.agent.skill.SkillResult
 import com.taomic.agent.skill.SkillRunner
 import com.taomic.agent.skill.dsl.RecoveryAction
@@ -29,25 +31,31 @@ class AgentOrchestrator(
     private val skillRunner: SkillRunner,
     intentRouter: IntentRouter = KeywordIntentRouter(),
     private val a11yController: A11yController? = null,
+    private val skillStore: SkillStore? = null,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val onStateChanged: (state: OrchestratorState) -> Unit = {},
 ) {
 
     private val skillRegistry = mutableMapOf<String, SkillSpec>()
+    private val recorder = SkillRecorder()
 
-    enum class OrchestratorState { IDLE, THINKING, EXECUTING, DONE, ERROR }
+    enum class OrchestratorState { IDLE, THINKING, EXECUTING, DONE, ERROR, RECORDING }
 
     /** 意图路由器；LLM 配置变更后可替换。 */
     var intentRouter: IntentRouter = intentRouter
 
     /** 加载内置 Skill（从 classpath 的 skills 目录下的 YAML 文件）。 */
     fun loadBuiltinSkills(classLoader: ClassLoader) {
-        val builtins = listOf(
+        loadBuiltinSkills(listOf(
             "skills/settings_open_internet.yaml",
             "skills/stub_video_play.yaml",
             "skills/tencent_video_play.yaml",
-        )
-        for (path in builtins) {
+        ), classLoader)
+    }
+
+    /** 加载内置 Skill（自定义路径列表）。 */
+    fun loadBuiltinSkills(paths: List<String>, classLoader: ClassLoader) {
+        for (path in paths) {
             try {
                 val stream = classLoader.getResourceAsStream(path)
                 if (stream == null) {
@@ -173,6 +181,60 @@ class AgentOrchestrator(
         val tag = if (r.ok) "SUCCESS" else "FAIL"
         Log.i(TAG, "RUN_SKILL[$tag] \"$skillId\" steps=${r.stepsExecuted}/${r.totalSteps} dur=${r.durationMs}ms err=${r.error}")
         for (line in r.log) Log.i(TAG, "  $line")
+    }
+
+    // ---------------------------------------------------------------- 录制
+
+    val isRecording: Boolean get() = recorder.isRecording
+
+    fun startRecording() {
+        recorder.startRecording()
+        onStateChanged(OrchestratorState.RECORDING)
+        Log.i(TAG, "recording started")
+    }
+
+    fun onRecordEvent(event: android.view.accessibility.AccessibilityEvent) {
+        recorder.onAccessibilityEvent(event)
+    }
+
+    fun stopRecording(): SkillRecorder.RecordingResult {
+        val result = recorder.stopRecording()
+        onStateChanged(OrchestratorState.IDLE)
+        Log.i(TAG, "recording stopped; ${result.steps.size} steps captured")
+        return result
+    }
+
+    fun cancelRecording() {
+        recorder.cancel()
+        onStateChanged(OrchestratorState.IDLE)
+        Log.i(TAG, "recording cancelled")
+    }
+
+    /** 将录制结果保存为 Skill：注册到内存 + 持久化到 SkillStore。 */
+    fun saveRecordedSkill(result: SkillRecorder.RecordingResult, id: String, name: String, description: String? = null): SkillSpec {
+        val spec = result.toSkillSpec(id, name, description)
+        registerSkill(spec)
+        skillStore?.save(spec)
+        Log.i(TAG, "recorded skill saved: $id (${spec.steps.size} steps)")
+        return spec
+    }
+
+    /** 从 SkillStore 加载用户录制的 Skill 到内存注册表。 */
+    fun loadUserSkills() {
+        val store = skillStore ?: return
+        val specs = store.listAll()
+        for (spec in specs) {
+            skillRegistry[spec.id] = spec
+            Log.i(TAG, "loaded user skill: ${spec.id} (${spec.steps.size} steps)")
+        }
+        Log.i(TAG, "loaded ${specs.size} user skills from store")
+    }
+
+    /** 删除用户 Skill：从内存 + SkillStore。 */
+    fun deleteUserSkill(id: String) {
+        skillRegistry.remove(id)
+        skillStore?.delete(id)
+        Log.i(TAG, "deleted user skill: $id")
     }
 
     companion object {

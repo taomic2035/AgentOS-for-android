@@ -10,6 +10,8 @@ import android.util.Log
 import com.taomic.agent.a11y.A11yActionContext
 import com.taomic.agent.a11y.AgentAccessibilityService
 import com.taomic.agent.core.intent.ChainedIntentRouter
+import com.taomic.agent.recorder.SkillRecorder
+import com.taomic.agent.recorder.SkillStore
 import com.taomic.agent.core.intent.IntentRouter
 import com.taomic.agent.core.intent.KeywordIntentRouter
 import com.taomic.agent.core.intent.LlmIntentRouter
@@ -32,6 +34,7 @@ class AgentApp : Application() {
 
     private lateinit var orchestrator: AgentOrchestrator
     private lateinit var llmConfigStore: LlmConfigStore
+    private lateinit var skillStore: SkillStore
     private var bubble: FloatingBubble? = null
 
     private val runSkillReceiver = object : BroadcastReceiver() {
@@ -49,16 +52,19 @@ class AgentApp : Application() {
     override fun onCreate() {
         super.onCreate()
         llmConfigStore = LlmConfigStore(this)
+        skillStore = SkillStore(context = this)
         val actionContext = A11yActionContext(applicationContext)
         orchestrator = AgentOrchestrator(
             skillRunner = DefaultSkillRunner(actionContext),
             intentRouter = KeywordIntentRouter(),
             a11yController = AgentAccessibilityService.instance(),
+            skillStore = skillStore,
             onStateChanged = { state ->
                 val bubbleState = when (state) {
                     AgentOrchestrator.OrchestratorState.IDLE -> AgentState.IDLE
                     AgentOrchestrator.OrchestratorState.THINKING -> AgentState.THINKING
                     AgentOrchestrator.OrchestratorState.EXECUTING -> AgentState.EXECUTING
+                    AgentOrchestrator.OrchestratorState.RECORDING -> AgentState.RECORDING
                     AgentOrchestrator.OrchestratorState.DONE -> AgentState.DONE
                     AgentOrchestrator.OrchestratorState.ERROR -> AgentState.ERROR
                 }
@@ -66,6 +72,7 @@ class AgentApp : Application() {
             },
         )
         orchestrator.loadBuiltinSkills(javaClass.classLoader!!)
+        orchestrator.loadUserSkills()
         rebuildRouter()
         registerRunReceiver()
         Log.i(TAG, "AgentApp onCreate; skills=${orchestrator.skillIds} llm=${llmConfigStore.isConfigured}")
@@ -89,6 +96,26 @@ class AgentApp : Application() {
     fun orchestrator(): AgentOrchestrator = orchestrator
     fun llmConfigStore(): LlmConfigStore = llmConfigStore
 
+    /** 开始录制模式：设置 eventCallback 将事件转发给 orchestrator。 */
+    fun startRecording() {
+        AgentAccessibilityService.instance()?.eventCallback = { event ->
+            orchestrator.onRecordEvent(event)
+        }
+        orchestrator.startRecording()
+    }
+
+    /** 停止录制：清除 eventCallback，返回录制结果。 */
+    fun stopRecording(): SkillRecorder.RecordingResult {
+        AgentAccessibilityService.instance()?.eventCallback = null
+        return orchestrator.stopRecording()
+    }
+
+    /** 取消录制。 */
+    fun cancelRecording() {
+        AgentAccessibilityService.instance()?.eventCallback = null
+        orchestrator.cancelRecording()
+    }
+
     fun showBubble() {
         if (bubble == null) {
             bubble = FloatingBubble(
@@ -97,6 +124,9 @@ class AgentApp : Application() {
                     Log.i(TAG, "bubble intent → \"$text\"")
                     orchestrator.handleIntent(text)
                 },
+                onStartRecording = { startRecording() },
+                onStopRecording = { stopRecording() },
+                onCancelRecording = { cancelRecording() },
             )
         }
         bubble?.show()

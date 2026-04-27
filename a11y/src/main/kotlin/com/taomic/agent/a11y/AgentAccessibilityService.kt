@@ -30,6 +30,10 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
     @Volatile
     private var lastWindowPackage: String? = null
 
+    /** 录制回调：外部注入，录制模式时接收所有 AccessibilityEvent。 */
+    @Volatile
+    var eventCallback: ((AccessibilityEvent) -> Unit)? = null
+
     private val triggerReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
@@ -58,6 +62,8 @@ class AgentAccessibilityService : AccessibilityService(), A11yController {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
+        // 转发给录制回调
+        eventCallback?.invoke(event)
         val pkg = event.packageName?.toString()
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
             pkg != null && pkg != lastWindowPackage
